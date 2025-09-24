@@ -7,7 +7,9 @@ import { BYTES_PER_LINE } from "../constants";
 const AI_SAMPLE_SIZE = 512;
 
 // --- Initialize AI Client ---
-const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+// Inisialisasi secara kondisional untuk mencegah crash jika API_KEY tidak ada.
+// Komponen App akan menampilkan layar error, ini untuk mencegah hard crash.
+const ai = process.env.API_KEY ? new GoogleGenAI({apiKey: process.env.API_KEY}) : null;
 
 // --- Helper Functions ---
 const formatBytesForPrompt = (bytes: Uint8Array): string => {
@@ -47,6 +49,10 @@ const relationshipSchema = {
 
 // --- API Call Functions ---
 async function analyzeWithGemini(formattedData: string, signal: AbortSignal): Promise<AiAnalysisResult> {
+    if (!ai) {
+        throw new Error("Gemini API key is not configured. Please set the API_KEY environment variable.");
+    }
+
     const prompt = `Anda adalah seorang analis file forensik. Analisis data heksadesimal berikut dari sebuah file. Respons Anda HARUS berupa objek JSON yang valid. Identifikasi kemungkinan jenis file, berikan ringkasan singkat tentang tujuannya, dan ekstrak hingga 5 temuan penting (seperti string yang dapat dibaca atau pola data yang menarik). Hasil harus dalam bahasa Indonesia.\n\nBerikut datanya:\n\`\`\`\n${formattedData}\n\`\`\``;
     
     // Note: The @google/genai SDK v1 doesn't directly support AbortSignal in generateContent.
@@ -97,7 +103,7 @@ async function analyzeWithOpenAI(formattedData: string, signal: AbortSignal): Pr
 export async function generateRelationshipAnalysis(
     files: { fileName: string; fileType: string; summary: string }[]
 ): Promise<CrossFileAnalysisResult> {
-    if (!process.env.API_KEY) {
+    if (!ai) {
         throw new Error("Gemini API key is not configured. Please set the API_KEY environment variable.");
     }
     const fileSummaries = files.map(f => `- File: ${f.fileName}\n  Type: ${f.fileType}\n  Summary: ${f.summary}`).join('\n\n');
@@ -123,9 +129,6 @@ export async function generateSummary(provider: AiProvider, bytes: Uint8Array, s
     const formattedData = formatBytesForPrompt(sampleBytes);
     
     if (provider === 'gemini') {
-        if (!process.env.API_KEY) {
-            throw new Error("Gemini API key is not configured. Please set the API_KEY environment variable.");
-        }
         return analyzeWithGemini(formattedData, signal);
     }
     
