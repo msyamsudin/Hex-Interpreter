@@ -1,0 +1,5 @@
+{
+  "name": "Hex Interpreter",
+  "description": "Alat untuk membaca data heksadesimal mentah ke dalam berbagai format seperti teks, bilangan bulat, pecahan desimal, dan lainnya. Mendukung interpretasi otomatis serta hubungan antar file menggunakan model AI.",
+  "requestFramePermissions": []
+}
